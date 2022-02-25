@@ -1,7 +1,7 @@
 # DL_Normalize-Flow
 
 # Human Face Generation
-![Teaser](Human Faces Generation/image/2epoch60.png)
+![Teaser](Human_Faces_Generation/image/2epoch60.png)
 
 # Objects Generation
-![Teaser](Objects Generation/result/result_test.png)
+![Teaser](Objects_Generation/result/result_test.png)
