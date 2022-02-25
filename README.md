@@ -1,4 +1,5 @@
 # DL_Normalize-Flow
+Here is a work about applying conditional Normalize Flow model to generate human faces and objects.
 ![Teaser](figure/NF.png)
 
 # Human Face Generation
