@@ -62,7 +62,7 @@ class NLLLoss(nn.Module):
     See Also:
         Equation (3) in the RealNVP paper: https://arxiv.org/abs/1605.08803
     """
-    def __init__(self, k=512):
+    def __init__(self, k=256):
         super(NLLLoss, self).__init__()
         self.k = k
 

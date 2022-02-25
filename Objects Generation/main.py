@@ -18,10 +18,11 @@ from dataloader import *
 from torch.utils.data import Dataset, DataLoader
 from glow import Glow
 import util
+from evaluator import *
 
 parser = argparse.ArgumentParser(description='setup')
-parser.add_argument('--data', default='/home/austin/Downloads/dataset/task_2/', type=str)
-parser.add_argument('--store', default='/home/austin/nctu_hw/DL/DL_hw7/Task2/model/image/', type=str)
+parser.add_argument('--data', default='/home/austin/Downloads/task_1/', type=str)
+parser.add_argument('--store', default='/home/austin/nctu_hw/DL/DL_hw7/Task1/NF/model/', type=str)
 parser.add_argument('--lr', default=2e-4, type=float)
 parser.add_argument('--num_channels', default=512, type=int)
 parser.add_argument('--num_levels', default=4, type=int)
@@ -31,8 +32,14 @@ parser.add_argument('--epochs', default=500, type=int)
 args = parser.parse_args()
 print(args)
 
-train_datasets = CelebALoader(args.data, cond=True)
+
+train_datasets = ICLEVRLoader(args.data, cond=True)
 train_dataloader = DataLoader(train_datasets, batch_size = args.batch_size, shuffle = True)
+
+test_datasets = ICLEVRLoader(args.data, cond=True, mode='test')
+test_dataloader = DataLoader(test_datasets, batch_size = len(test_datasets), shuffle = True)
+
+
 
 net = Glow(num_channels=args.num_channels,
                num_levels=args.num_levels,
@@ -40,10 +47,11 @@ net = Glow(num_channels=args.num_channels,
 
 optimizer = optim.Adam(net.parameters(), lr=args.lr)
 
+Eval = evaluation_model()
 criterion = util.NLLLoss().cuda()
 loss_meter = util.AverageMeter()
 
-wandb.init(project='NF-task2')
+wandb.init(project='NF-task1')
 config = wandb.config
 config.lr = args.lr
 config.batch_size = args.batch_size
@@ -54,9 +62,12 @@ config.epochs = args.epochs
 wandb.watch(net)
 
 
+z_test = torch.randn((32, 3, 64, 64), dtype=torch.float32).cuda()
+conds_test = next(iter(test_dataloader))['cond'].cuda()
 
 for epoch in range(args.epochs):
     loss_sum = []
+    score = 0
     net.train()
     for i_batch, sampled_batched in enumerate(train_dataloader):
         print(str(i_batch) + '/'+str(int(len(train_datasets)/args.batch_size)+1),end='\r')
@@ -78,13 +89,19 @@ for epoch in range(args.epochs):
     
     net.eval()
     with torch.no_grad():
-        gen_img, _ = net(z, conds.float(), reverse=True)
+        gen_img, _ = net(z_test.float(), conds_test.float(), reverse=True)
         gen_img = torch.tanh(gen_img)
+        score = Eval.eval(gen_img, conds_test)
 
-    print('Epoch : '+str(epoch+1)+' Loss : '+str(sum(loss_sum)/len(loss_sum)))
+    print('Epoch : '+str(epoch+1)+' Loss : '+str(sum(loss_sum)/len(loss_sum))+' Score : '+str(score))
 
     wandb.log({"Loss": sum(loss_sum)/len(loss_sum)})
+    wandb.log({"Score": score})
 
-    if (epoch+1)%10 == 0:
+    if (score>=0.5):
         util.save_image(gen_img, os.path.join(args.store, f'2epoch{epoch+1}.png'), nrow=8, normalize=True)
-        torch.save(net.state_dict(), args.store+'NF_'+str(epoch+1)+'.pth')
+        torch.save(net.state_dict(), args.store+'NF_'+str(epoch+1)+'_'+str(score)+'.pth')
+
+
+
+

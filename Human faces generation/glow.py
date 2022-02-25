@@ -20,7 +20,7 @@ class Glow(nn.Module):
                            num_levels=num_levels,
                            num_steps=num_steps)
         self.mode = mode
-        self.fc = nn.Linear(24,3*64*64)
+        self.fc = nn.Linear(40,3*64*64)
         self.act = nn.ReLU()
 
     def forward(self, x, x_cond, reverse=False):
